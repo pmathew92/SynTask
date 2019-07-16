@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">SynTask</string>
+    <string name="error_message">Something went wrong.Please try again!</string>
+    <string name="variation">Variation</string>
+    <string name="price">Price</string>
+    <string name="instock">InStock</string>
+</resources>
