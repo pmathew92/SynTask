@@ -2,8 +2,10 @@ package com.prince.syntask.di
 
 import android.app.Application
 import android.content.Context
+import com.prince.data.remote.ApiService
+import com.prince.data.repository.MainRepositoryImpl
+import com.prince.domain.repository.MainRepository
 import com.prince.syntask.BuildConfig
-import com.prince.syntask.data.remote.ApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -16,7 +18,9 @@ import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
-class ApplicationModule {
+object ApplicationModule {
+
+    @JvmStatic
     @Singleton
     @Provides
     @Named("Application Context")
@@ -24,6 +28,7 @@ class ApplicationModule {
         return application.applicationContext
     }
 
+    @JvmStatic
     @Singleton
     @Provides
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
@@ -37,6 +42,7 @@ class ApplicationModule {
         return interceptor
     }
 
+    @JvmStatic
     @Singleton
     @Provides
     fun provideOkHttpClient(interceptor: HttpLoggingInterceptor): OkHttpClient {
@@ -52,6 +58,7 @@ class ApplicationModule {
         return builder.build()
     }
 
+    @JvmStatic
     @Singleton
     @Provides
     fun provideRetrofit(client: OkHttpClient): Retrofit {
@@ -67,10 +74,19 @@ class ApplicationModule {
             .build()
     }
 
+    @JvmStatic
     @Singleton
     @Provides
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+
+
+    @JvmStatic
+    @Singleton
+    @Provides
+    fun provideMainRepository(mainRepositoryImpl: MainRepositoryImpl): MainRepository {
+        return mainRepositoryImpl
     }
 
 }

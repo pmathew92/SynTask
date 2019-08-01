@@ -2,7 +2,7 @@ package com.prince.syntask.ui
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.prince.syntask.data.repository.MainRepository
-import com.prince.syntask.model.VariantGroup
+import com.prince.domain.entities.VariantGroupEntity
 import junit.framework.Assert.assertEquals
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -23,15 +23,15 @@ class MainActivityViewModelTest {
     lateinit var repository: MainRepository
 
     @Mock
-    lateinit var observer: androidx.lifecycle.Observer<List<VariantGroup>>
+    lateinit var observer: androidx.lifecycle.Observer<List<VariantGroupEntity>>
 
     @Mock
-    lateinit var variants: VariantGroup
+    lateinit var variants: VariantGroupEntity
 
     lateinit var mainViewModel: MainActivityViewModel
 
 
-    lateinit var result: List<VariantGroup>
+    lateinit var result: List<VariantGroupEntity>
 
     @Before
     fun setUp() {

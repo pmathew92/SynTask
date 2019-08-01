@@ -4,16 +4,22 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.prince.syntask.data.repository.MainRepository
-import com.prince.syntask.model.ApiResponse
+import com.prince.domain.entities.VariantsEntity
+import com.prince.domain.usecases.GetVariantsUseCase
+import com.prince.syntask.mapper.Mapper
 import com.prince.syntask.model.Exclusions
 import com.prince.syntask.model.VariantGroup
+import com.prince.syntask.model.Variants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 
-class MainActivityViewModel(private val userRepository: MainRepository) : ViewModel() {
+class MainActivityViewModel(
+    private val useCase: GetVariantsUseCase,
+    private val mapper: Mapper<VariantsEntity, Variants>
+) : ViewModel() {
     private val exclusionMap1 = hashMapOf<String, HashMap<String, ArrayList<Exclusions>>>()
     private val selectedMap = hashMapOf<String, String>()
 
@@ -54,10 +60,11 @@ class MainActivityViewModel(private val userRepository: MainRepository) : ViewMo
                 _error.value = false
                 _loading.value = true
                 val result = withContext(Dispatchers.IO) {
-                    userRepository.fetchResults()
+                    useCase.execute()
                 }
-                transformData(result)
+                transformData(mapper.from(result))
             } catch (t: Throwable) {
+                Timber.d("Error  ${t.message}")
                 _error.value = true
             } finally {
                 _loading.value = false
@@ -69,10 +76,10 @@ class MainActivityViewModel(private val userRepository: MainRepository) : ViewMo
     /**
      * Method to transform the input data to include the excluded items
      */
-    private fun transformData(result: ApiResponse) {
+    private fun transformData(result: Variants) {
 
-        val excluded = result.variants.excludeList
-        items = result.variants.variantGroups as ArrayList<VariantGroup>
+        val excluded = result.excludeList
+        items = result.variantGroups as ArrayList<VariantGroup>
 
         for (outerItem in excluded) {
             var map = HashMap<String, ArrayList<Exclusions>>()

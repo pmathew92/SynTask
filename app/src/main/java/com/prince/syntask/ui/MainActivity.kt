@@ -16,10 +16,10 @@ class MainActivity : AppCompatActivity(), ItemAdapter.ItemSelectedListener {
     override fun itemSelected(groupId: String?, selected: String?, position: Int): Boolean {
         return viewModel.checkExclusionsAndSelect(groupId, selected, position)
     }
-
-
+    
     @Inject
     lateinit var factory: MainViewModelFactory
+
     private val viewModel by lazy {
         ViewModelProviders.of(this, factory).get(MainActivityViewModel::class.java)
     }
