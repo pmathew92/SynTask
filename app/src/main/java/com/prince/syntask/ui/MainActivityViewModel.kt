@@ -28,7 +28,7 @@ class MainActivityViewModel(
 
     private var items = ArrayList<VariantGroup>();
 
-    private val _loading = MutableLiveData<Boolean>(true)
+    private val _loading = MutableLiveData<Boolean>()
 
     private val _error = MutableLiveData<Boolean>()
 
@@ -57,16 +57,17 @@ class MainActivityViewModel(
 
         viewModelScope.launch {
             try {
-                _error.value = false
+                _error.postValue(false)
+                _loading.postValue(true)
                 val result = withContext(Dispatchers.IO) {
                     useCase.execute()
                 }
                 transformData(mapper.from(result))
             } catch (t: Throwable) {
                 Timber.d("Error  ${t.message}")
-                _error.value = true
+                _error.postValue(true)
             } finally {
-                _loading.value = false
+                _loading.postValue(false)
             }
         }
     }
@@ -76,9 +77,9 @@ class MainActivityViewModel(
      * Method to transform the input data to include the excluded items
      */
     private fun transformData(result: Variants) {
-
         val excluded = result.excludeList
         items = result.variantGroups as ArrayList<VariantGroup>
+        _itemLists.postValue(items)
 
         for (outerItem in excluded) {
             var map = HashMap<String, ArrayList<Exclusions>>()
@@ -114,8 +115,6 @@ class MainActivityViewModel(
             }
 
         }
-        _itemLists.value = items
-
     }
 
 
@@ -135,7 +134,7 @@ class MainActivityViewModel(
         }
 
         items[position].selected = variationId ?: ""
-        _itemLists.value = items
+        _itemLists.postValue(items)
         groupId?.let {
             if (variationId != null) {
                 selectedMap[it] = variationId

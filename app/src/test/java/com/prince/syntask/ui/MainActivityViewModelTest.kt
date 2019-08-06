@@ -1,17 +1,18 @@
 package com.prince.syntask.ui
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.Observer
+import com.nhaarman.mockitokotlin2.verify
 import com.prince.domain.entities.VariantGroupEntity
 import com.prince.domain.entities.VariantsEntity
 import com.prince.domain.usecases.GetVariantsUseCase
 import com.prince.syntask.mapper.Mapper
+import com.prince.syntask.model.VariantGroup
 import com.prince.syntask.model.Variants
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Assert.*
+import kotlinx.coroutines.test.runBlockingTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -19,16 +20,31 @@ import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.MockitoAnnotations
 
+@ExperimentalCoroutinesApi
 class MainActivityViewModelTest {
 
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    @get:Rule
+    val coroutinesTestRule = CoroutinesTestRule()
+
 
     @Mock
     lateinit var useCase: GetVariantsUseCase
 
     @Mock
     lateinit var mapper: Mapper<VariantsEntity, Variants>
+
+    @Mock
+    lateinit var errorObserver: Observer<Boolean>
+
+    @Mock
+    lateinit var loaderObserver: Observer<Boolean>
+
+    @Mock
+    lateinit var observer: Observer<List<VariantGroup?>>
+
 
     private lateinit var variants: VariantsEntity
 
@@ -40,22 +56,18 @@ class MainActivityViewModelTest {
 
     private lateinit var result: List<VariantGroupEntity>
 
-    @ExperimentalCoroutinesApi
+
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        Dispatchers.setMain(Dispatchers.Unconfined)
         mainViewModel = MainActivityViewModel(useCase, mapper)
         result = listOf(variantGroups, variantGroups, variantGroups, variantGroups)
         variants = VariantsEntity(listOf(emptyList()), result)
     }
 
-    @After
-    fun tearDown() {
-    }
 
     @Test
-    fun fetchResult_positive() = runBlocking(Dispatchers.Unconfined) {
+    fun fetchResult_positive() = coroutinesTestRule.testDispatcher.runBlockingTest {
 
         Mockito.`when`(useCase.execute()).thenReturn(variants)
 
@@ -70,34 +82,31 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun testLoading() = runBlocking (Dispatchers.Unconfined){
+    fun testLoading() = coroutinesTestRule.testDispatcher.runBlockingTest {
         Mockito.`when`(useCase.execute()).thenReturn(variants)
 
         assertNotNull(mainViewModel.loading.value)
 
         mainViewModel.loadApiData()
-        mainViewModel.loading.observeForever {}
+        mainViewModel.loading.observeForever(loaderObserver)
 
-        assertEquals(mainViewModel.loading.value, false)
-
+        verify(loaderObserver).onChanged(true)
+        verify(loaderObserver).onChanged(false)
 
     }
 
     @Test
-    fun testError() {
-        runBlocking(Dispatchers.Unconfined) {
-            Mockito.`when`(useCase.execute())
-                .thenAnswer { throw Exception() }
+    fun testError() = coroutinesTestRule.testDispatcher.runBlockingTest {
+        Mockito.`when`(useCase.execute())
+            .thenAnswer { throw Exception() }
 
-            assertNotNull(mainViewModel.error.value)
-            mainViewModel.loadApiData()
+        assertNotNull(mainViewModel.error.value)
 
-            mainViewModel.error.observeForever {
-                assertTrue(mainViewModel.error.value == true)
-            }
+        mainViewModel.error.observeForever(errorObserver)
 
-        }
+        mainViewModel.loadApiData()
 
+        verify(errorObserver).onChanged(false)
+        verify(errorObserver).onChanged(true)
     }
-
 }
