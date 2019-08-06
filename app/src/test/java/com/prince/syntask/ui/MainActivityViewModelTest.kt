@@ -1,11 +1,17 @@
 package com.prince.syntask.ui
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.prince.syntask.data.repository.MainRepository
 import com.prince.domain.entities.VariantGroupEntity
-import junit.framework.Assert.assertEquals
+import com.prince.domain.entities.VariantsEntity
+import com.prince.domain.usecases.GetVariantsUseCase
+import com.prince.syntask.mapper.Mapper
+import com.prince.syntask.model.Variants
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -18,26 +24,30 @@ class MainActivityViewModelTest {
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
+    @Mock
+    lateinit var useCase: GetVariantsUseCase
 
     @Mock
-    lateinit var repository: MainRepository
+    lateinit var mapper: Mapper<VariantsEntity, Variants>
+
+    private lateinit var variants: VariantsEntity
 
     @Mock
-    lateinit var observer: androidx.lifecycle.Observer<List<VariantGroupEntity>>
+    lateinit var variantGroups: VariantGroupEntity
 
-    @Mock
-    lateinit var variants: VariantGroupEntity
-
-    lateinit var mainViewModel: MainActivityViewModel
+    private lateinit var mainViewModel: MainActivityViewModel
 
 
-    lateinit var result: List<VariantGroupEntity>
+    private lateinit var result: List<VariantGroupEntity>
 
+    @ExperimentalCoroutinesApi
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        mainViewModel = MainActivityViewModel(repository)
-        result = listOf(variants, variants, variants, variants)
+        Dispatchers.setMain(Dispatchers.Unconfined)
+        mainViewModel = MainActivityViewModel(useCase, mapper)
+        result = listOf(variantGroups, variantGroups, variantGroups, variantGroups)
+        variants = VariantsEntity(listOf(emptyList()), result)
     }
 
     @After
@@ -45,35 +55,49 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun fetchResult_positive() = runBlocking {
-        Mockito.`when`(repository.fetchResults()).thenReturn(result)
+    fun fetchResult_positive() = runBlocking(Dispatchers.Unconfined) {
 
-
-        mainViewModel.itemLists.observeForever(observer)
+        Mockito.`when`(useCase.execute()).thenReturn(variants)
 
         mainViewModel.loadApiData()
 
-        org.junit.Assert.assertNotNull(mainViewModel.itemLists.value)
-        org.junit.Assert.assertEquals(mainViewModel.itemLists.value?.size, 4)
+        mainViewModel.itemLists.observeForever {
+            assertNotNull(mainViewModel.itemLists.value)
+            assertEquals(4, it.size)
+            assertEquals(result, it)
+        }
+
     }
 
     @Test
-    fun testLoading() = runBlocking {
-        Mockito.`when`(repository.fetchResults()).thenReturn(result)
+    fun testLoading() = runBlocking (Dispatchers.Unconfined){
+        Mockito.`when`(useCase.execute()).thenReturn(variants)
+
+        assertNotNull(mainViewModel.loading.value)
 
         mainViewModel.loadApiData()
+        mainViewModel.loading.observeForever {}
+
         assertEquals(mainViewModel.loading.value, false)
+
+
     }
 
     @Test
-    fun testError() = runBlocking {
+    fun testError() {
+        runBlocking(Dispatchers.Unconfined) {
+            Mockito.`when`(useCase.execute())
+                .thenAnswer { throw Exception() }
 
-        val exception = Exception()
+            assertNotNull(mainViewModel.error.value)
+            mainViewModel.loadApiData()
 
-        Mockito.`when`(repository.fetchResults())
-            .thenThrow(exception)
+            mainViewModel.error.observeForever {
+                assertTrue(mainViewModel.error.value == true)
+            }
 
-        mainViewModel.loadApiData()
-        org.junit.Assert.assertEquals(mainViewModel.error.value, true)
+        }
+
     }
+
 }

@@ -28,7 +28,7 @@ class MainActivityViewModel(
 
     private var items = ArrayList<VariantGroup>();
 
-    private val _loading = MutableLiveData<Boolean>()
+    private val _loading = MutableLiveData<Boolean>(true)
 
     private val _error = MutableLiveData<Boolean>()
 
@@ -58,7 +58,6 @@ class MainActivityViewModel(
         viewModelScope.launch {
             try {
                 _error.value = false
-                _loading.value = true
                 val result = withContext(Dispatchers.IO) {
                     useCase.execute()
                 }
